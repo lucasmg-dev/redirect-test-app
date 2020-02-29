@@ -1,0 +1,55 @@
+version: "2"
+services:
+  memcached:
+    image: memcached:1.4
+    ports:
+      - "11212:11211"
+
+  data:
+    image: busybox
+    volumes:
+      - ./misc/data:/var/lib/mysql
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: redirect_url
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes_from:
+      - data
+    container_name: mysql
+
+  web:
+    build: .
+    command: sh -c "pip install -r requirements.txt; python manage.py runserver --settings=redirect_test.settings_local 0.0.0.0:8000"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    links:
+      - mysql
+      - memcached
+      - migration
+    depends_on:
+      - mysql
+      - memcached
+      - migration
+
+  migration:
+    build: .
+    command: >
+      sh -c "
+        python manage.py makemigrations --settings=redirect_test.settings_local &&
+        python manage.py migrate --settings=redirect_test.settings_local &&
+        python redirect_test/onetime/superuser.py
+      "
+    volumes:
+      - .:/code
+    links:
+      - mysql
+    depends_on:
+      - mysql

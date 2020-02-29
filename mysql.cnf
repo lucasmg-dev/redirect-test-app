@@ -1,0 +1,6 @@
+[client]
+host = mysql
+database = redirect_url
+user = root
+password = root
+default-character-set = utf8
