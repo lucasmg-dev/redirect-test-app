@@ -15,7 +15,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: redirect_url
-      MYSQL_USER: root
       MYSQL_PASSWORD: root
     ports:
       - "3306:3306"
@@ -25,7 +24,7 @@ services:
 
   web:
     build: .
-    command: sh -c "pip install -r requirements.txt; python manage.py runserver --settings=redirect_test.settings_local 0.0.0.0:8000"
+    command: sh -c "dockerize -wait tcp://mysql:3306 -timeout 300s -wait-retry-interval 30s; pip install -r requirements.txt; python manage.py runserver --settings=redirect_test.settings_local 0.0.0.0:8000"
     volumes:
       - .:/code
     ports:
@@ -43,9 +42,10 @@ services:
     build: .
     command: >
       sh -c "
-        python manage.py makemigrations --settings=redirect_test.settings_local &&
-        python manage.py migrate --settings=redirect_test.settings_local &&
-        python redirect_test/onetime/superuser.py
+      dockerize -wait tcp://mysql:3306 -timeout 300s -wait-retry-interval 30s
+      python manage.py makemigrations --settings=redirect_test.settings_local &&
+      python manage.py migrate --settings=redirect_test.settings_local &&
+      python redirect_test/onetime/superuser.py
       "
     volumes:
       - .:/code
